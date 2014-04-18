@@ -1,0 +1,86 @@
+\documentclass[12pt,a4paper,oneside,fleqn,openany]{book}
+\usepackage[T1]{fontenc}
+\usepackage[cp1250]{inputenc}
+\usepackage{amsfonts}
+\usepackage[slovene]{babel}
+
+%\usepackage{algorithm2e}
+
+\usepackage{longtable}
+\renewcommand{\baselinestretch}{1}
+\bibliographystyle{unsrt}
+\usepackage{graphicx}
+
+
+\usepackage{amsmath}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{verbatim}
+\usepackage{tabularx}
+\usepackage{color}
+\usepackage{listings}
+% \usepackage{breqn}
+
+%
+% Page setup
+\setlength{\oddsidemargin}{0.5in}%
+\setlength{\evensidemargin}{0.0in}%
+\setlength{\topmargin}{0.0in}%
+\setlength{\textwidth}{6.0in}%
+\setlength{\textheight}{9.0in}%
+%\setlength{\marginparsep}{3 mm}%
+%\setlength{\marginparwidth}{1.5 cm}%
+\raggedbottom
+%
+\begin{document}
+\begin{large}PRILOGA K PROGRAMU: \textbf{DOKUMENTACIJA (model 1)}\end{large} \vspace{10mm}
+
+\textbf{\textcolor{red}{Koraki programa:}}
+\begin{enumerate}
+	\item Izraèunamo $\sigma$ (standardni odklon) in $\mu$ (povpreèje) doloèenega pretekla obdobja (obdobja na katerem se program uèi), katerega povpreèje želimo znižati ali obdržati.
+	\item Generiramo populacijo $P$ velikosti $n\geq 651$ (doloèeno s pomoèjo tabele Cohen, 1988).
+	\item Izraèunamo $k$ iz enaèbe:
+	$$ \mbox{povZp} = \frac{\mbox{realniVzorec}+k\cdot (\mbox{nakljucnaPopulacija}-\mbox{realniVzorec})}{n},$$
+	kjer je povZp povpreèje iz toèke 1, realniVzorec predstavlja popuste, ki so prispeli v tekoèem oz. prejšnjem dnevu, nakljucnaPopulacija=$P$ iz toèke 2 in $n$ je velikost populacije iz toèke 2.
+	\item Za mejo $M$ postavimo vrednost $k\cdot(\mu+\sigma)$.
+	\item Dobimo nove realne vrednosti, ki jih shranimo v realniVzorec.
+	\item P=P-realniVzorec
+	\item Toèke 3., 4., 5. in 6. ponavljamo dnevno.
+\end{enumerate} \vspace{10mm}
+
+Funkcija \emph{generirajModel}, ki je tudi glavna funkcija programa, ima naslednje parametre:
+\begin{itemize}
+	\item \emph{datumOd} - zaèetni datum preteklega obdobja, na katerem se model "uèi"
+	\item \emph{datumDo} - konèni datum preteklega obdobja, na katerem se model "uèi"
+	\item \emph{datumOd2} - zaèetni datum testiranja
+	\item \emph{datumDo2} - konèni datum testiranja
+	\item \emph{privzetaMejaZaAvtorizacijo} - sedanja oz trenutna fiksna privzeta meja za avtoriziranje
+	\item \emph{dPovprecje} - za koliko odstotkov zelimo spremeniti povpreèje (èe ga hoèemo zmanjšati, mora biti negativno, vrednosti morajo biti med 0 in 1)
+	\item \emph{dSD} - analogno kot dPovpreèje, le da gre za standardni odklon
+	\item \emph{dAvtorizacije} - Za koliko znižamo popust, èe se znajde v avtorizaciji.
+	\item \emph{mesto} oz. zavarovalniška enota (opcijsko)
+\end{itemize} 
+
+Funkcija \emph{dolociMejo} vrne mejo za avtoriziranje za izbran datum. Parametri te funkcije se prenesejo iz funkcije \emph{generirajModel}, tako da jih uporabnik ne rabi navajati.\\
+
+Program vrne naslednje podatke:
+\begin{itemize}
+	\item stAvtorizacij (koliko avtorizacij je v testnem obdobju bilo potrebno) in stAvtorizacijPrivzeto (koliko avtorizacij bi bilo potrebno pri neki fiksni privzeti meji)
+	\item Razliko med stAvtorizacij in stAvtorizacijPrivzeto in razmerje oz. odstotek zmanjšanja števila avtorizacij.
+\end{itemize} \vspace{10mm}
+
+\textbf{\textcolor{red}{Navodila uporabniku:}} \\
+
+Uporabnik mora vnesti parametre funkcije \emph{generirajModel} (opis parametrov je zapisan pri opisu funkcije). Po vnosu parametrov program vrne \emph{mejo za avtoriziranje} za vsak dan testnega obdobja.
+
+Primer preprostega klica funkcije:\\
+\begin{lstlisting}[language=R]
+simulator <- generirajModel("20140101","20140131",
+	"20140201","20140228",	
+	privzetaMejaZaAvtorizacijo = 0.37, dPovprecje = -0.02, 
+	dSD = -0.03, dAvtorizacije = -0.05)
+print(simulator)
+\end{lstlisting}
+Funkcija bo simulirala obdobje od 1. Februarja do 28. Februarja s podanimi parametri in nato shranila v objekt \texttt{simulator} število avtorizacij z uporabo meje, ter primerjavo z številom avtorizacij, èe bi uporabljali privzeto mejo. Te podatke nato izpišemo.\\
+
+\end{document}
