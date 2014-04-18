@@ -10,14 +10,21 @@
 \renewcommand{\baselinestretch}{1}
 \bibliographystyle{unsrt}
 \usepackage{graphicx}
-
-
+\usepackage{index}
+\usepackage{fancyhdr}
+\usepackage{lhelp}
+\usepackage{optparams}
+\usepackage{psfrag}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{setspace}
 \usepackage{amsmath}
-\usepackage{algorithmic}
-\usepackage{algorithm}
+%%\usepackage{algorithmic}
+%%\usepackage{algorithm}
 \usepackage{verbatim}
 \usepackage{tabularx}
 \usepackage{color}
+\usepackage{algorithm2e}
 \usepackage{listings}
 % \usepackage{breqn}
 
@@ -33,54 +40,120 @@
 \raggedbottom
 %
 \begin{document}
-\begin{large}PRILOGA K PROGRAMU: \textbf{DOKUMENTACIJA (model 1)}\end{large} \vspace{10mm}
+\begin{larger}PRILOGA K PROGRAMU: \textbf{DOKUMENTACIJA (model 1)}\end{larger} \vspace{10mm}
 
-\textbf{\textcolor{red}{Koraki programa:}}
+\begin{large}\textbf{Opis programa}\end{large} \vspace{10mm}
+
+Program je narejen na statistièni podlagi in sicer je osnovna ideja zasnovana na predpostavljeni normalni porazdelitvi ter na uporabi povpreèja in standardnega odklona, saj je povpreèje tisto, ki ga želimo nadzorovati (in spreminjati), standardni odklon pa je od njega neposredno odvisen oz. sta tesno povezana. \\
+
+Algoritem dela s pomoèjo štirih populacij, ki jih uporabljamo skozi korake algoritma. Te so:
+\begin{itemize}
+	\item Uèna populacija $P_u$: je populacija preteklega opazovanega obdobja. Iz nje, ob predpostavki da je porazdeljena normalno, dobimo povpreèje in standardni odklon.
+	\item Realna populacija $P_r$: realni dodeljeni popusti od nekega doloèenega datuma naprej.
+	\item Simulirana populacija $P_s$: nakljuèna populacija, ki je po predpostavki normalno porazdeljena ter ima enako povpreèje in standardni odklon kot uèna populacija $P_u$.
+	\item Nova populacija $P_n$: realni dodeljeni popusti tekoèega dne.
+\end{itemize}
+
+Potrebne pretekle podatke dobimo iz baze, kjer so shranjeni znani pretekli podatki (v našem primeru je to .csv datoteka). \\
+
+\newpage
+
+\begin{large}\textbf{Psevdokoda}\end{large} \vspace{10mm}
+
+\begin{algorithm}[H]
+\caption{Psevdokoda programa}
+ \KwData{$P_u$, $\mu_d$, $\sigma_d$}
+ \KwResult{M, h // M-meja za avtoriziranje, h-namig avtorizantu}
+	\textbf{Initialization of local variables:}\\
+	// s $|P_n|$ oznaèimo moè populacije $P_n$, $m$ = prièakovano število popustov\;
+  $\mu$=mean($P_u$)\;
+	$\sigma$=std($P_u$)\;
+	$M_z:=\mu+\mu_d+\sigma+\sigma_d$ // zaèetna meja\;
+	$k:=1$ // koeficient za premikanje meje\;
+	generiraj $P_s$ velikosti $m$ z $\mu$ in $\sigma$\;
+	$P_r:=\emptyset$\;
+	$P_n:=\emptyset$\;
+	\line(1,0){50} \\
+	\For{vsak dan}{
+	\begin{larger}$k:=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}}{\sum_{\tiny{p\in P_s}}{p}}$\end{larger}\;
+	$M:=k\cdot M_z$ // meja\;
+	\begin{larger}$h=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}-\sum_{\tiny{p \in P_s, p < M}}{p}}{\sum_{\tiny{p \in P_s, p \geq M}}{p}}$\end{larger}\;
+	$P_n$ := nove prejete vrednosti\;
+	iz $P_s$ odstrani $|P_n|$ nakljuènih vrednosti\;
+	$P_r:=P_r+P_n$\;
+  %\eIf{understand}{
+   %go to next section\;
+   %current section becomes this one\;
+   %}{
+   %go back to the beginning of current section\;
+  }
+\end{algorithm}
+
+\newpage
+\begin{large}\textbf{Koraki programa}\end{large} \vspace{10mm}
+
+
+%\textbf{\textcolor{red}{Koraki programa:}}
 \begin{enumerate}
-	\item Izraèunamo $\sigma$ (standardni odklon) in $\mu$ (povpreèje) doloèenega pretekla obdobja (obdobja na katerem se program uèi), katerega povpreèje želimo znižati ali obdržati.
-	\item Generiramo populacijo $P$ velikosti $n\geq 651$ (doloèeno s pomoèjo tabele Cohen, 1988).
+	\item Izraèunamo $\sigma$ (standardni odklon) in $\mu$ (povpreèje) uène populacije $P_s$.
+	\item Generiramo simulirano populacijo $P_s$ katere velikost $m$ obièajno doloèimo na podlagi števila popustov v enakem obdobju leto nazaj in indeksa rasti.
+	\item Realna populacija $P_r$ je na zaèetku prazna.
+	\item Nova populacija $P_n$ je na zaèetku prazna. \\
+	
+	Dnevno ponavljamo naslednje korake:\\
 	\item Izraèunamo $k$ iz enaèbe:
-	$$ \mbox{povZp} = \frac{\mbox{realniVzorec}+k\cdot (\mbox{nakljucnaPopulacija}-\mbox{realniVzorec})}{n},$$
-	kjer je povZp povpreèje iz toèke 1, realniVzorec predstavlja popuste, ki so prispeli v tekoèem oz. prejšnjem dnevu, nakljucnaPopulacija=$P$ iz toèke 2 in $n$ je velikost populacije iz toèke 2.
+	$$\mu = \frac{\sum_{\tiny{p\in P_r}}{p}+k\cdot \sum_{\tiny{p\in P_s}}{p}}{m},$$
+	kjer je $\mu$ povpreèje od $P_u$, $P_r$ je realna populacija, $P_n$ nova populacija, $P_s$ simulirana populacija in $m$ velikost simulirane populacije. \\
+	Èe $k=1$, pomeni, da mejo ohranjamo oz. se ta ne spremeni.
 	\item Za mejo $M$ postavimo vrednost $k\cdot(\mu+\sigma)$.
-	\item Dobimo nove realne vrednosti, ki jih shranimo v realniVzorec.
-	\item P=P-realniVzorec
-	\item Toèke 3., 4., 5. in 6. ponavljamo dnevno.
+	\item Izraèunamo $h$ iz enaèbe:
+	$$\mu=\frac{\sum_{\tiny{p\in P_r}}{p}+\sum_{\tiny{p \in P_s, p < M}}{p}+h\cdot\sum_{\tiny{p \in P_s, p \geq M}}{p}}{m}$$
+	\item Novo populacijo $P_n$ prepišemo z novimi prejetimi vrednostmi.
+	\item Iz simulirane populacije $P_s$ nakljuèno odstranimo toliko elementov oz. popustov, kolikor jih je v novi populaciji $P_n$.
+	\item K realni populaciji $P_r$ dodamo novo populacijo $P_n$.
 \end{enumerate} \vspace{10mm}
+
+\newpage
+\begin{large}\textbf{Funckije}\end{large} \vspace{10mm}
 
 Funkcija \emph{generirajModel}, ki je tudi glavna funkcija programa, ima naslednje parametre:
 \begin{itemize}
-	\item \emph{datumOd} - zaèetni datum preteklega obdobja, na katerem se model "uèi"
-	\item \emph{datumDo} - konèni datum preteklega obdobja, na katerem se model "uèi"
-	\item \emph{datumOd2} - zaèetni datum testiranja
-	\item \emph{datumDo2} - konèni datum testiranja
-	\item \emph{privzetaMejaZaAvtorizacijo} - sedanja oz trenutna fiksna privzeta meja za avtoriziranje
-	\item \emph{dPovprecje} - za koliko odstotkov zelimo spremeniti povpreèje (èe ga hoèemo zmanjšati, mora biti negativno, vrednosti morajo biti med 0 in 1)
-	\item \emph{dSD} - analogno kot dPovpreèje, le da gre za standardni odklon
-	\item \emph{dAvtorizacije} - Za koliko znižamo popust, èe se znajde v avtorizaciji.
-	\item \emph{mesto} oz. zavarovalniška enota (opcijsko)
-\end{itemize} 
+	\item \emph{datumOd} - zaèetni datum uènega obdobja
+	\item \emph{datumDo} - konèni datum uènega obdobja
+	\item \emph{datumOd2} - zaèetni datum realnega obdobja
+	\item \emph{datumDo2} - konèni datum realnega obdobja
+	\item \emph{privzetaMejaZaAvtorizacijo} - sedanja oz. trenutna fiksna privzeta meja za avtoriziranje. Potrebujemo jo za primerjavo števila potrebnih avtorizacij pri tej meji s številom potrebnih avtorizacij pri meji, ki jo vrne program, da bi ugotovili, za koliko se število avtorizacij zmanjša (ali poveèa).
+	\item \emph{dPovprecje} ($\mu_d$) - za koliko odstotkov želimo spremeniti povpreèje (èe ga hoèemo zmanjšati, mora biti negativno, vrednosti morajo biti med 0 in 1)
+	\item \emph{dSD} ($\sigma_d$) - analogno kot dPovprecje, le da gre za standardni odklon
+	\item \emph{dAvtorizacije} - za koliko znižamo popust, èe se znajde v avtorizaciji.
+	\item \emph{segment} oz. zavarovalniška enota (PE) - opcijski parameter
+\end{itemize} \vspace{10mm}
 
-Funkcija \emph{dolociMejo} vrne mejo za avtoriziranje za izbran datum. Parametri te funkcije se prenesejo iz funkcije \emph{generirajModel}, tako da jih uporabnik ne rabi navajati.\\
+Funkcija \emph{dolociMejo} vrne mejo za avtoriziranje za izbran datum.\\
 
 Program vrne naslednje podatke:
 \begin{itemize}
-	\item stAvtorizacij (koliko avtorizacij je v testnem obdobju bilo potrebno) in stAvtorizacijPrivzeto (koliko avtorizacij bi bilo potrebno pri neki fiksni privzeti meji)
+	\item \emph{stAvtorizacij} (koliko avtorizacij je v testnem obdobju bilo potrebno) in \emph{stAvtorizacijPrivzeto} (koliko avtorizacij bi bilo potrebno pri neki fiksni privzeti meji)
 	\item Razliko med stAvtorizacij in stAvtorizacijPrivzeto in razmerje oz. odstotek zmanjšanja števila avtorizacij.
 \end{itemize} \vspace{10mm}
 
-\textbf{\textcolor{red}{Navodila uporabniku:}} \\
+\newpage
+\begin{large}\textbf{Navodila uporabniku}\end{large} \vspace{10mm}
+%\textbf{\textcolor{red}{Navodila uporabniku:}} \\
 
-Uporabnik mora vnesti parametre funkcije \emph{generirajModel} (opis parametrov je zapisan pri opisu funkcije). Po vnosu parametrov program vrne \emph{mejo za avtoriziranje} za vsak dan testnega obdobja.
+Uporabnik mora vnesti parametre funkcije \emph{generirajModel} (opis parametrov je zapisan pri opisu funkcije). Po vnosu parametrov program vrne \emph{mejo za avtoriziranje} za vsak dan testnega obdobja. Parametre funkcije \emph{dolociMejo} uporabnik ne rabi navajati, saj se prenesejo iz funkcije \emph{generirajModel}.\\ \vspace{10mm}
 
-Primer preprostega klica funkcije:\\
+\newpage
+\begin{large}\textbf{Primer preprostega klica funkcije}\end{large} \vspace{10mm}
+
+%\textbf{\textcolor{red}{Primer preprostega klica funkcije:}}\\
 \begin{lstlisting}[language=R]
 simulator <- generirajModel("20140101","20140131",
-	"20140201","20140228",	
-	privzetaMejaZaAvtorizacijo = 0.37, dPovprecje = -0.02, 
-	dSD = -0.03, dAvtorizacije = -0.05)
+ "20140201","20140228", 0.37, dPovprecje = -0.02, 
+ dSD = -0.03, dAvtorizacije = -0.05)
 print(simulator)
 \end{lstlisting}
 Funkcija bo simulirala obdobje od 1. Februarja do 28. Februarja s podanimi parametri in nato shranila v objekt \texttt{simulator} število avtorizacij z uporabo meje, ter primerjavo z številom avtorizacij, èe bi uporabljali privzeto mejo. Te podatke nato izpišemo.\\
+
 
 \end{document}
