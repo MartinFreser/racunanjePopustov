@@ -39,7 +39,7 @@ namigZaAvtorizanta <- function(novaPopulacija, realnaPopulacija, zaOdstranit, si
 
 
 
-generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaAvtorizacijo, dPovprecje, dSD, dAvtorizacije = 0, indeksRasti = 1, mesto = NULL){
+generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaAvtorizacijo, dPovprecje, dSD, dAvtorizacije = 0, indeksRasti = 1,stNakljucnihPopulacij = 1, mesto = NULL){
 	#Model se nauči na podatkih datumOd do datumDo, kjer izračuna povprečje in standardni odklon. datum2Od in datum2Do določata, kdaj bomo simulirali podatke
 	# dPovprecje .... za koliko procentov zelimo spremeniti povprečje (če ga hočemo zmanjšati, mora biti negativno)
 	# dSD ... analogno kot dPovprečje, le da gre za standardni odklon
@@ -65,7 +65,10 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 	#print(sprintf("povprecje : %.3f, standardniOdklon: %.3f", %povZp sdZp)))
 	stPodatkov=as.integer(sum(stariPodatki, na.rm=TRUE)*indeksRasti)
 	print (stPodatkov)
-	celotnaPopulacija <- simuliranaPopulacija <- rnorm(n=stPodatkov, m=povZp, sd=sdZp) #generiramo nakljucno populacijo, celotna je na začetku naključna
+	celotnaPopulacija <- simuliranaPopulacija <- list()
+	for (i in 1:stNakljucnihPopulacij){
+		celotnaPopulacija[[i]] <- simuliranaPopulacija[[i]] <- rnorm(n=stPodatkov, m=povZp, sd=sdZp) #generiramo nakljucno populacijo, celotna je na začetku naključna
+	 }
 	realnaPopulacija <- array()
 	#m <- povZp+(1.96/sqrt(100))*sdZp
 	sum=0
@@ -83,22 +86,30 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 		}
 		novaPopulacija <- zp$DODELJENI_POPUSTI_952_ODS[gledaniPodatki2]
 		lenNovaPopulacija <- length(novaPopulacija);
-		if (length(simuliranaPopulacija) >= lenNovaPopulacija){
-			zaOdstranit <- sample(simuliranaPopulacija, lenNovaPopulacija)
-		}else zaOdstranit = array()
-		#iz simulirane populacije izbrišemo toliko primerov
-		#kolikor smo jih dobili iz nove Populacije		
+		mejaArray <- namigArray <- array()
+		for (i in 1:stNakljucnihPopulacij){
+			if (length(simuliranaPopulacija) >= lenNovaPopulacija){
+				zaOdstranit <- sample(simuliranaPopulacija[[i]], lenNovaPopulacija)
+			}else zaOdstranit = array()
+			#iz simulirane populacije izbrišemo toliko primerov
+			#kolikor smo jih dobili iz nove Populacije		
+			
+			#vstavimo funkcijo, katera nam določa mejo.
+			mejaArray[i] <- dolociMejo2(novaPopulacija, realnaPopulacija, zaOdstranit, simuliranaPopulacija[[i]], povZp, sdZp)
+			namigArray[i] <- namigZaAvtorizanta(novaPopulacija, realnaPopulacija, zaOdstranit, simuliranaPopulacija[[i]], povZp, sdZp, mejaArray[i])
+			simuliranaPopulacija[[i]] <- simuliranaPopulacija[[i]][!simuliranaPopulacija[[i]] %in% zaOdstranit] 
+			celotnaPopulacija[[i]] <- c(simuliranaPopulacija[[i]], realnaPopulacija)
+		}
 		
-		#vstavimo funkcijo, katera nam določa mejo.
-		meja <- dolociMejo2(novaPopulacija, realnaPopulacija, zaOdstranit, simuliranaPopulacija, povZp, sdZp)
-		namig <- namigZaAvtorizanta(novaPopulacija, realnaPopulacija, zaOdstranit, simuliranaPopulacija, povZp, sdZp, meja)
+		meja = median(mejaArray, na.rm = TRUE)
+		namig = median (namigArray, na.rm = TRUE)
+		realnaPopulacija <- c(realnaPopulacija, novaPopulacija[novaPopulacija < meja], novaPopulacija[novaPopulacija>meja] + dAvtorizacije)
+		#realnaPopulacija <- c(realnaPopulacija, novaPopulacija)
+		
 		print(sprintf("nova meja je %.4f, povprecje do tega trenutka je %.4f, standardni odklon: %.4f, stNovihPopustov: %d, skewness = %.4f, namig = %.4f", meja, 
 				mean(realnaPopulacija, na.rm=TRUE), sd(realnaPopulacija, na.rm=TRUE), length(novaPopulacija), skewness(realnaPopulacija, na.rm=TRUE), namig))
 		
-		realnaPopulacija <- c(realnaPopulacija, novaPopulacija[novaPopulacija < meja], novaPopulacija[novaPopulacija>meja] + dAvtorizacije)
-		#realnaPopulacija <- c(realnaPopulacija, novaPopulacija)
-		simuliranaPopulacija <- simuliranaPopulacija[!simuliranaPopulacija %in% zaOdstranit] 
-		celotnaPopulacija <- c(simuliranaPopulacija, realnaPopulacija)
+		
 		
 		
 		#Preverimo, koliko avtorizacij bi na dan  dt imeli.
@@ -107,8 +118,8 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 				stAvtorizacij <- stAvtorizacij+1;
 			}
 		}
-		stAvtorizacijPrivzeto <-stAvtorizacijPrivzeto + sum(novaPopulacija > privzetaMejaZaAvtorizacijo, na.rm=TRUE) #koliko avtorizacij bi imeli s privzeto mejo
-		
+		#koliko avtorizacij bi imeli s privzeto mejo
+		stAvtorizacijPrivzeto <-stAvtorizacijPrivzeto + sum(novaPopulacija > privzetaMejaZaAvtorizacijo, na.rm=TRUE) 
 		
 	}
 	a <- mean(realnaPopulacija, na.rm=TRUE)
@@ -123,7 +134,7 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 #simulator
 
 #Simulacija zmanjsanje povprecja in standardnega odklona
-simulator <- generirajModel("20140101","20140131","20140201","20140228", 0.37, -0.02, -0.02, -0.05, indeksRasti = 3.2)
+simulator <- generirajModel("20140101","20140131","20140101","20140228", 0.37, -0.02, -0.02, -0.05, stNakljucnihPopulacij = 1, indeksRasti = 3.2)
 simulator
 
 #simulator <- generirajModel("20131210","20131212","20140101","20140228", 0.37, -0.02, -0.02, -0.05)
