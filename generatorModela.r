@@ -48,7 +48,6 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 	gledaniDatumDo <- zp$DT_SKLENITVE <= datumDo
 	gledaniDatumOd2 <- zp$DT_SKLENITVE >= toString(as.numeric(datumOd2)-10000)
 	gledaniDatumDo2 <- zp$DT_SKLENITVE <= toString(as.numeric(datumDo2)-10000)
-	print (toString(as.numeric(datumDo2)-10000))
 	neveljavniPodatki <- zp$PREMIJA_PRED_POPUSTI_952_NOM == 0
 	if (!is.null(mesto)){
 		gledaniPodatki <- (gledaniDatumOd & gledaniDatumDo) & zp$POSLOVALNICA == mesto & !neveljavniPodatki
@@ -63,8 +62,8 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 	sdZp <- sd(zp$DODELJENI_POPUSTI_952_ODS[gledaniPodatki], na.rm=TRUE) + dSD #standardni odklon
 	povZp <- mean(zp$DODELJENI_POPUSTI_952_ODS[gledaniPodatki], na.rm=TRUE) + dPovprecje #povprecje
 	#print(sprintf("povprecje : %.3f, standardniOdklon: %.3f", %povZp sdZp)))
-	stPodatkov=as.integer(sum(stariPodatki, na.rm=TRUE)*indeksRasti)
-	print (stPodatkov)
+	stPodatkov=as.integer(sum(stariPodatki, na.rm=TRUE)*indeksRasti/100)
+	print (sprintf("Pricakujemo %s podatkov, izracunanih z %s indeksom rasti", stPodatkov, indeksRasti))
 	celotnaPopulacija <- simuliranaPopulacija <- list()
 	for (i in 1:stNakljucnihPopulacij){
 		celotnaPopulacija[[i]] <- simuliranaPopulacija[[i]] <- rnorm(n=stPodatkov, m=povZp, sd=sdZp) #generiramo nakljucno populacijo, celotna je na začetku naključna
@@ -126,7 +125,8 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 	print(sprintf("Povprecje Pred %.4f", povZp))
 	print(sprintf("povprecje po %.4f", a))
 	rezultati <- list("stAvtorizacij" = stAvtorizacij, "stAvtorizacijPrivzeto" = stAvtorizacijPrivzeto, "razlika" = stAvtorizacijPrivzeto-stAvtorizacij,
-				"razmerje" = 1-stAvtorizacij/stAvtorizacijPrivzeto);
+				"razmerje" = 1-stAvtorizacij/stAvtorizacijPrivzeto, "novoRazmerje" = stAvtorizacij/ length(realnaPopulacija), 
+				"staroRazmerje" = stAvtorizacijPrivzeto/ length(realnaPopulacija));
 	rezultati
 }
 #Simulacija ohranjanja porazdelitve 
@@ -134,7 +134,7 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 #simulator
 
 #Simulacija zmanjsanje povprecja in standardnega odklona
-simulator <- generirajModel("20140101","20140131","20140101","20140228", 0.37, -0.02, -0.02, -0.05, stNakljucnihPopulacij = 1, indeksRasti = 3.2)
+simulator <- generirajModel("20140101","20140131","20140101","20140228", 0.37, -0.02, -0.02, -0.05, stNakljucnihPopulacij = 1, indeksRasti = 103.2)
 simulator
 
 #simulator <- generirajModel("20131210","20131212","20140101","20140228", 0.37, -0.02, -0.02, -0.05)
