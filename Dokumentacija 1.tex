@@ -52,7 +52,7 @@ Algoritem dela s pomoèjo štirih populacij, ki jih uporabljamo skozi korake algor
 \begin{itemize}
 	\item Uèna populacija $P_u$: je populacija preteklega opazovanega obdobja. Iz nje, ob predpostavki da je porazdeljena normalno, dobimo povpreèje in standardni odklon.
 	\item Realna populacija $P_r$: realni dodeljeni popusti od nekega doloèenega datuma naprej.
-	\item Simulirana populacija $P_s$: nakljuèna populacija, ki je po predpostavki normalno porazdeljena ter ima željeno ciljno povpreèje in standardni odklon. Povpreèje se od povpreèja populacije $P_u$ razlikuje za $\mu_d$ (za koliko \% želimo spremeniti povpreèje), standardni odklon pa se od standardnega odklona populacije $P_u$ razlikuje za $\sigma_d$ (za koliko \% želimo spremeniti standardni odklon).
+	\item Polje simuliranih populacij $P_s[]$: element polja je nakljuèna populacija, ki je po predpostavki normalno porazdeljena ter ima željeno ciljno povpreèje in standardni odklon. Povpreèje se od povpreèja populacije $P_u$ razlikuje za $\mu_d$ (za koliko \% želimo spremeniti povpreèje), standardni odklon pa se od standardnega odklona populacije $P_u$ razlikuje za $\sigma_d$ (za koliko \% želimo spremeniti standardni odklon).
 	\item Nova populacija $P_n$: realni dodeljeni popusti tekoèega dne.
 \end{itemize}
 
@@ -90,31 +90,39 @@ Razlago spremenljivk in programa najdete v poglavju Koraki programa. \\
  \KwData{$P_u$, $\mu_d$, $\sigma_d$, $stPop$}
  \KwResult{M, nmg // M-meja za avtoriziranje, nmg-namig avtorizantu}
 	\textbf{Initialization of local variables:}\\
-	// s $|P_n|$ oznaèimo moè populacije $P_n$, $m$ = prièakovano število popustov, $A$ = množica vseh nakljuènih populacij\;
+	s $|P_n|$ oznaèimo moè populacije $P_n$\;
+	$m$ := prièakovano število popustov\;
+	$P_s[]$ := polje vseh nakljuènih populacij velikosti $stPop$\;
+	nmgArray[] := polje namigov za trenutni dan velikosti $stPop$\;
+	MArray[] := polje mej za trenutni dan velikost $stPop$\;
   $\mu$=mean($P_u$)+$\mu_d$\;
 	$\sigma$=std($P_u$)+$\sigma_d$\;
 	$M_z:=\mu+\sigma$ // zaèetna meja\;
 	$k:=1$ // koeficient za premikanje meje\;
 	\For{i:=1 \textbf{to} $stPop$}{
-	generiraj $P_s$ velikosti $m$ z $\mu$ in $\sigma$ in jo dodaj v $A$\;
+		$P_s[i]$ := nakljucna normalno porazdeljena populacija velikosti $m$ z $\mu$ in $\sigma$\;
 	}
 	$P_r:=\emptyset$\;
 	$P_n:=\emptyset$\;
 	\line(1,0){50} \\
 	\For{vsak dan}{
-	\begin{larger}$k:=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}}{\sum_{\tiny{p\in P_s}}{p}}$\end{larger}\;
-	$M:=k\cdot M_z$ // nova trenutna meja\;
-	\begin{larger}$h=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}-\sum_{\tiny{p \in P_s, p < M}}{p}}{\sum_{\tiny{p \in P_s, p \geq M}}{p}}$\end{larger}\;
-	$nmg := 1-h$\;
-	$P_n$ := nove prejete vrednosti\;
-	iz $P_s$ odstrani $|P_n|$ nakljuènih vrednosti\;
-	$P_r:=P_r+P_n$\;
-  %\eIf{understand}{
-   %go to next section\;
-   %current section becomes this one\;
-   %}{
-   %go back to the beginning of current section\;
-  }
+		\For{i:=1 \textbf{to} $stPop$}{
+			\begin{larger}$k:=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}}{\sum_{\tiny{p\in P_s}}{p}}$\end{larger}\;
+			$MArray[i]:=k\cdot M_z$ // nova trenutna meja\;
+			\begin{larger}$h=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}-\sum_{\tiny{p \in P_s[i], p < M}}{p}}{\sum_{\tiny{p \in P_s[i], p \geq M}}{p}}$\end{larger}\;
+			$nmgArray[i] := 1-h$\;
+			$P_n$ := nove prejete vrednosti\;
+			iz $P_s[i]$ odstrani $|P_n|$ nakljuènih vrednosti\;
+			$P_r:=P_r+P_n$\;
+			%\eIf{understand}{
+			 %go to next section\;
+			 %current section becomes this one\;
+			 %}{
+			 %go back to the beginning of current section\;
+			}
+			$M = \text{mediana} (MArray)$ //meja za ta dan\;
+			$nmg = \text{mediana}(nmgArray)$ // namig za ta dan\;
+	}
 \end{algorithm}
 
 \newpage
@@ -123,22 +131,25 @@ Razlago spremenljivk in programa najdete v poglavju Koraki programa. \\
 
 %\textbf{\textcolor{red}{Koraki programa:}}
 \begin{enumerate}
-	\item Izraèunamo $\sigma$ (standardni odklon) in $\mu$ (povpreèje) uène populacije $P_s$.
-	\item Generiramo simulirano populacijo $P_s$ katere velikost $m$ obièajno doloèimo na podlagi števila popustov v enakem obdobju leto nazaj in indeksa rasti.
+	\item Izraèunamo $\sigma$ (standardni odklon) in $\mu$ (povpreèje) uène populacije $P_u$.
+	\item Generiramo polje velikosti $stPop$ simuliranih populacij $P_s[]$. Posamezna populacija $P_s[i]$ je velikosti $m$, katero obièajno doloèimo na podlagi števila popustov v enakem obdobju leto nazaj in indeksa rasti.
 	\item Realna populacija $P_r$ je na zaèetku prazna.
 	\item Nova populacija $P_n$ je na zaèetku prazna. \\
 	
 	Dnevno ponavljamo naslednje korake:\\
+	Ponavljamo za i := 1 do $stPop$:\\
 	\item Izraèunamo $k$ iz enaèbe:
-	$$\mu = \frac{\sum_{\tiny{p\in P_r}}{p}+k\cdot \sum_{\tiny{p\in P_s}}{p}}{m},$$
-	kjer je $\mu$ povpreèje od $P_u$, $P_r$ je realna populacija, $P_n$ nova populacija, $P_s$ simulirana populacija in $m$ velikost simulirane populacije. \\
+	$$\mu = \frac{\sum_{\tiny{p\in P_r}}{p}+k\cdot \sum_{\tiny{p\in P_s[i]}}{p}}{m},$$
+	kjer je $\mu$ povpreèje od $P_u$, $P_r$ je realna populacija, $P_n$ nova populacija, $P_s[i]$ simulirana populacija in $m$ velikost simulirane populacije. \\
 	Èe $k=1$, pomeni, da mejo ohranjamo oz. se ta ne spremeni.
-	\item Za mejo $M$ postavimo vrednost $k\cdot(\mu+\sigma)$.
+	\item Za mejo $MArray[i]$ postavimo vrednost $k\cdot(\mu+\sigma)$.
 	\item Izraèunamo $h$ iz enaèbe:
 	$$\mu=\frac{\sum_{\tiny{p\in P_r}}{p}+\sum_{\tiny{p \in P_s, p < M}}{p}+h\cdot\sum_{\tiny{p \in P_s, p \geq M}}{p}}{m}$$
+	\item Za namig $nmgArray[i]$ postavimo vrednost $1-h$
 	\item Novo populacijo $P_n$ prepišemo z novimi prejetimi vrednostmi.
-	\item Iz simulirane populacije $P_s$ nakljuèno odstranimo toliko elementov oz. popustov, kolikor jih je v novi populaciji $P_n$.
+	\item Iz simulirane populacije $P_s[i]$ nakljuèno odstranimo toliko elementov oz. popustov, kolikor jih je v novi populaciji $P_n$.
 	\item K realni populaciji $P_r$ dodamo novo populacijo $P_n$.
+	\item Ko zakljuèimo z vsemi simuliranimi populacijami doloèimo namig $nmg =$mediana $(nmgArray)$ in mejo $M = \text{mediana}(MArray)$
 \end{enumerate} \vspace{10mm}
 
 \newpage
@@ -154,6 +165,7 @@ Funkcija \emph{generirajModel}, ki je tudi glavna funkcija programa, ima nasledn
 	\item \emph{dPovprecje} ($\mu_d$) - za koliko odstotkov želimo spremeniti povpreèje (èe ga hoèemo zmanjšati, mora biti negativno, vrednosti morajo biti med 0 in 1)
 	\item \emph{dSD} ($\sigma_d$) - analogno kot dPovprecje, le da gre za standardni odklon
 	\item \emph{dAvtorizacije} - za koliko znižamo popust, èe se znajde v avtorizaciji
+	\item \emph{stPop} - koliko nakljuènih populacij bomo generirali
 	\item \emph{segment} oz. zavarovalniška enota (PE) - opcijski parameter
 \end{itemize} \vspace{10mm}
 
@@ -178,7 +190,7 @@ Uporabnik mora vnesti parametre funkcije \emph{generirajModel} (opis parametrov 
 \begin{lstlisting}[language=R]
 simulator <- generirajModel("20140101","20140131",
  "20140201","20140228", 0.37, dPovprecje = -0.02, 
- dSD = -0.03, dAvtorizacije = -0.05)
+ dSD = -0.03, dAvtorizacije = -0.05, stPop = 10)
 print(simulator)
 \end{lstlisting}
 Funkcija bo simulirala obdobje od 1. februarja do 28. februarja s podanimi parametri in nato shranila v objekt \texttt{simulator} število avtorizacij z uporabo meje, ter primerjavo z številom avtorizacij, èe bi uporabljali privzeto mejo. Te podatke nato izpišemo.\\
