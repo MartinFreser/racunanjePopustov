@@ -46,38 +46,66 @@
 
 Program je narejen na statistièni podlagi in sicer je osnovna ideja zasnovana na predpostavljeni normalni porazdelitvi ter na uporabi povpreèja in standardnega odklona, saj je povpreèje tisto, ki ga želimo nadzorovati (in spreminjati), standardni odklon pa je od njega neposredno odvisen oz. sta tesno povezana. \\
 
+Ideja je zasnovana na generiranju nakljuènih populacij oz. populacij, ki kar se da natanèno predstavljajo preteklo in trenutno dodeljevanje popustov. Za natanènejšo analizo in natanènejše rezultate nakljuèno populacijo generiramo $n$-krat, da zaradi nakljuène izbire dobimo realnejše podatke. Iz vseh generiranih podatkov izberemo mediano. \\
+
 Algoritem dela s pomoèjo štirih populacij, ki jih uporabljamo skozi korake algoritma. Te so:
 \begin{itemize}
 	\item Uèna populacija $P_u$: je populacija preteklega opazovanega obdobja. Iz nje, ob predpostavki da je porazdeljena normalno, dobimo povpreèje in standardni odklon.
 	\item Realna populacija $P_r$: realni dodeljeni popusti od nekega doloèenega datuma naprej.
-	\item Simulirana populacija $P_s$: nakljuèna populacija, ki je po predpostavki normalno porazdeljena ter ima enako povpreèje in standardni odklon kot uèna populacija $P_u$.
+	\item Simulirana populacija $P_s$: nakljuèna populacija, ki je po predpostavki normalno porazdeljena ter ima željeno ciljno povpreèje in standardni odklon. Povpreèje se od povpreèja populacije $P_u$ razlikuje za $\mu_d$ (za koliko \% želimo spremeniti povpreèje), standardni odklon pa se od standardnega odklona populacije $P_u$ razlikuje za $\sigma_d$ (za koliko \% želimo spremeniti standardni odklon).
 	\item Nova populacija $P_n$: realni dodeljeni popusti tekoèega dne.
 \end{itemize}
 
 Potrebne pretekle podatke dobimo iz baze, kjer so shranjeni znani pretekli podatki (v našem primeru je to .csv datoteka). \\
 
+Potrebni podatki so:
+\begin{itemize}
+	\item ZAVAROVALNA\_POGODBA\_ID - identifikacijska številka zavarovalne pogodbe
+	\item DT\_SKLENITVE - datum sklenitve zavarovalne pogodbe podan v obliki \texttt{llllmmdd}, kjer \texttt{llll} predstavlja leto, \texttt{mm} mesec in \texttt{dd} dan sklenitve
+	\item PE - poslovna enota oz. segment podana v obliki \texttt{PE kk}, kjer \texttt{kk} prestavlja kratico mesta
+	\item DODELJENI\_POPUSTI\_952\_ODS - dodeljeni popust zavarovalne pogodbe, podan z vrednostjo med 0 in 1, kjer je decimalni del od celega loèen s piko
+\end{itemize}
+
+Spodaj vidimo sestavo tabela, v kateri je tudi naveden primer vnosa ene vrstice oz. podatkov ene zavarovalne police.
+
+\begin{scriptsize}
+\begin{center}
+    \begin{tabular}{ | l | l | l | l |}
+    \hline
+    ZAVAROVALNA\_POGODBA\_ID & DT\_SKLENITVE & PE & DODELJENI\_POPUSTI\_952\_ODS \\ \hline
+		15230422 & 20131016 & PE MB & 0.33 \\    
+    \hline
+    \end{tabular}
+\end{center}
+\end{scriptsize}
+
 \newpage
 
 \begin{large}\textbf{Psevdokoda}\end{large} \vspace{10mm}
 
+Razlago spremenljivk in programa najdete v poglavju Koraki programa. \\
+
 \begin{algorithm}[H]
 \caption{Psevdokoda programa}
- \KwData{$P_u$, $\mu_d$, $\sigma_d$}
- \KwResult{M, h // M-meja za avtoriziranje, h-namig avtorizantu}
+ \KwData{$P_u$, $\mu_d$, $\sigma_d$, $stPop$}
+ \KwResult{M, nmg // M-meja za avtoriziranje, nmg-namig avtorizantu}
 	\textbf{Initialization of local variables:}\\
-	// s $|P_n|$ oznaèimo moè populacije $P_n$, $m$ = prièakovano število popustov\;
-  $\mu$=mean($P_u$)\;
-	$\sigma$=std($P_u$)\;
-	$M_z:=\mu+\mu_d+\sigma+\sigma_d$ // zaèetna meja\;
+	// s $|P_n|$ oznaèimo moè populacije $P_n$, $m$ = prièakovano število popustov, $A$ = množica vseh nakljuènih populacij\;
+  $\mu$=mean($P_u$)+$\mu_d$\;
+	$\sigma$=std($P_u$)+$\sigma_d$\;
+	$M_z:=\mu+\sigma$ // zaèetna meja\;
 	$k:=1$ // koeficient za premikanje meje\;
-	generiraj $P_s$ velikosti $m$ z $\mu$ in $\sigma$\;
+	\For{i:=1 \textbf{to} $stPop$}{
+	generiraj $P_s$ velikosti $m$ z $\mu$ in $\sigma$ in jo dodaj v $A$\;
+	}
 	$P_r:=\emptyset$\;
 	$P_n:=\emptyset$\;
 	\line(1,0){50} \\
 	\For{vsak dan}{
 	\begin{larger}$k:=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}}{\sum_{\tiny{p\in P_s}}{p}}$\end{larger}\;
-	$M:=k\cdot M_z$ // meja\;
+	$M:=k\cdot M_z$ // nova trenutna meja\;
 	\begin{larger}$h=\frac{\mu \cdot m-\sum_{\tiny{p\in P_r}}{p}-\sum_{\tiny{p \in P_s, p < M}}{p}}{\sum_{\tiny{p \in P_s, p \geq M}}{p}}$\end{larger}\;
+	$nmg := 1-h$\;
 	$P_n$ := nove prejete vrednosti\;
 	iz $P_s$ odstrani $|P_n|$ nakljuènih vrednosti\;
 	$P_r:=P_r+P_n$\;
@@ -122,10 +150,10 @@ Funkcija \emph{generirajModel}, ki je tudi glavna funkcija programa, ima nasledn
 	\item \emph{datumDo} - konèni datum uènega obdobja
 	\item \emph{datumOd2} - zaèetni datum realnega obdobja
 	\item \emph{datumDo2} - konèni datum realnega obdobja
-	\item \emph{privzetaMejaZaAvtorizacijo} - sedanja oz. trenutna fiksna privzeta meja za avtoriziranje. Potrebujemo jo za primerjavo števila potrebnih avtorizacij pri tej meji s številom potrebnih avtorizacij pri meji, ki jo vrne program, da bi ugotovili, za koliko se število avtorizacij zmanjša (ali poveèa).
+	\item \emph{privzetaMejaZaAvtorizacijo} - sedanja oz. trenutna fiksna privzeta meja za avtoriziranje. Potrebujemo jo za primerjavo števila potrebnih avtorizacij pri tej meji s številom potrebnih avtorizacij pri meji, ki jo vrne program, da bi ugotovili, za koliko se število avtorizacij zmanjša (ali poveèa)
 	\item \emph{dPovprecje} ($\mu_d$) - za koliko odstotkov želimo spremeniti povpreèje (èe ga hoèemo zmanjšati, mora biti negativno, vrednosti morajo biti med 0 in 1)
 	\item \emph{dSD} ($\sigma_d$) - analogno kot dPovprecje, le da gre za standardni odklon
-	\item \emph{dAvtorizacije} - za koliko znižamo popust, èe se znajde v avtorizaciji.
+	\item \emph{dAvtorizacije} - za koliko znižamo popust, èe se znajde v avtorizaciji
 	\item \emph{segment} oz. zavarovalniška enota (PE) - opcijski parameter
 \end{itemize} \vspace{10mm}
 
@@ -153,7 +181,7 @@ simulator <- generirajModel("20140101","20140131",
  dSD = -0.03, dAvtorizacije = -0.05)
 print(simulator)
 \end{lstlisting}
-Funkcija bo simulirala obdobje od 1. Februarja do 28. Februarja s podanimi parametri in nato shranila v objekt \texttt{simulator} število avtorizacij z uporabo meje, ter primerjavo z številom avtorizacij, èe bi uporabljali privzeto mejo. Te podatke nato izpišemo.\\
+Funkcija bo simulirala obdobje od 1. februarja do 28. februarja s podanimi parametri in nato shranila v objekt \texttt{simulator} število avtorizacij z uporabo meje, ter primerjavo z številom avtorizacij, èe bi uporabljali privzeto mejo. Te podatke nato izpišemo.\\
 
 
 \end{document}
