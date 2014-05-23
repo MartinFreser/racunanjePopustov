@@ -39,7 +39,7 @@ namigZaAvtorizanta <- function(novaPopulacija, realnaPopulacija, zaOdstranit, si
 
 
 
-generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaAvtorizacijo, dPovprecje, dSD, dAvtorizacije = 0, indeksRasti = 1,stNakljucnihPopulacij = 1, mesto = NULL){
+generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaAvtorizacijo, dPovprecje, dSD, dAvtorizacije = 0, indeksRasti = 1,stNakljucnihPopulacij = 1, malaMeja = 0.25, dMalaMeja=0, mesto = NULL){
 	#Model se nauči na podatkih datumOd do datumDo, kjer izračuna povprečje in standardni odklon. datum2Od in datum2Do določata, kdaj bomo simulirali podatke
 	# dPovprecje .... za koliko procentov zelimo spremeniti povprečje (če ga hočemo zmanjšati, mora biti negativno)
 	# dSD ... analogno kot dPovprečje, le da gre za standardni odklon
@@ -58,7 +58,7 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 		gledaniPodatki <- (gledaniDatumOd & gledaniDatumDo) & !neveljavniPodatki
 		stariPodatki <- (gledaniDatumOd2 & gledaniDatumDo2) & !neveljavniPodatki		
 	}
-	print(sum(gledaniPodatki))
+	print(sprintf("Ucimo se na %s podatkih", sum(gledaniPodatki)))
 	sdZp <- sd(zp$DODELJENI_POPUSTI_952_ODS[gledaniPodatki], na.rm=TRUE) + dSD #standardni odklon
 	povZp <- mean(zp$DODELJENI_POPUSTI_952_ODS[gledaniPodatki], na.rm=TRUE) + dPovprecje #povprecje
 	#print(sprintf("povprecje : %.3f, standardniOdklon: %.3f", %povZp sdZp)))
@@ -102,7 +102,7 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 		
 		meja = median(mejaArray, na.rm = TRUE)
 		namig = median (namigArray, na.rm = TRUE)
-		realnaPopulacija <- c(realnaPopulacija, novaPopulacija[novaPopulacija < meja], novaPopulacija[novaPopulacija>meja] + dAvtorizacije)
+		realnaPopulacija <- c(realnaPopulacija, novaPopulacija[novaPopulacija<=malaMeja],novaPopulacija[malaMeja< novaPopulacija && novaPopulacija < meja]+dMalaMeja, novaPopulacija[novaPopulacija>meja] + dAvtorizacije)
 		#realnaPopulacija <- c(realnaPopulacija, novaPopulacija)
 		
 		print(sprintf("nova meja je %.4f, povprecje do tega trenutka je %.4f, standardni odklon: %.4f, stNovihPopustov: %d, skewness = %.4f, namig = %.4f", meja, 
