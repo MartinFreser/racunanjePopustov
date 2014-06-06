@@ -1,4 +1,4 @@
-setwd("D:\\Martin delo\\zavPolice\\intervali zaupanja") # Nastavite si delovno okolje, torej pot do mape, v kateri delate
+setwd("C:\\Users\\DraganaBozovic\\Desktop\\ZavMbNovo") # Nastavite si delovno okolje, torej pot do mape, v kateri delate
 zp<-read.csv("LTV avtomatizacija avtorizacij - podatki v2.csv", sep=";")
 #print(head(zp))
 library(stats)
@@ -112,10 +112,11 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 		namig = median (namigArray, na.rm = TRUE)
 		realnaPopulacija <- c(realnaPopulacija, novaPopulacija[novaPopulacija<=malaMeja],novaPopulacija[malaMeja< novaPopulacija && novaPopulacija < meja]+dMalaMeja, novaPopulacija[novaPopulacija>meja] + dAvtorizacije)
 		#realnaPopulacija <- c(realnaPopulacija, novaPopulacija)
-		
+		x <- c(meja, mean(realnaPopulacija, na.rm=TRUE), sd(realnaPopulacija, na.rm=TRUE), length(novaPopulacija), skewness(realnaPopulacija, na.rm=TRUE), namig)
+		write(x, file = "output1.txt", ncolumns = 6, append = TRUE, sep = ";")		
 		print(sprintf("nova meja je %.4f, povprecje do tega trenutka je %.4f, standardni odklon: %.4f, stNovihPopustov: %d, skewness = %.4f, namig = %.4f", meja, 
 				mean(realnaPopulacija, na.rm=TRUE), sd(realnaPopulacija, na.rm=TRUE), length(novaPopulacija), skewness(realnaPopulacija, na.rm=TRUE), namig))
-		
+		#print(x)
 		
 		
 		
@@ -137,19 +138,8 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 				"staroRazmerje" = stAvtorizacijPrivzeto/ length(realnaPopulacija));
 	rezultati
 }
-#Simulacija ohranjanja porazdelitve 
-#simulator <- generirajModel("20130101","20130131","20140101","20140131", 0.37, 0, 0, 0)
-#simulator
-
+		
 #Simulacija zmanjsanje povprecja in standardnega odklona
+#sink("output.txt", append=TRUE, split=FALSE)
 simulator <- generirajModel("20140101","20140131","20140101","20140228", 0.37, -0.00, -0.02, -0.05,malaMeja=0.25,dMalaMeja=-0.01, delezRealnih = 0.5, stNakljucnihPopulacij = 10, indeksRasti = 103.2)
 simulator
-
-#simulator <- generirajModel("20131210","20131212","20140101","20140228", 0.37, -0.02, -0.02, -0.05)
-#simulator
-
-
-
-#mean(celotnaPopulacija, na.rm=TRUE)
-#max(celotnaPopulacija, na.rm=TRUE)
-#length(celotnaPopulacija)
