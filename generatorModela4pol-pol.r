@@ -131,6 +131,8 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 		stAvtorizacijPrivzeto <-stAvtorizacijPrivzeto + sum(novaPopulacija > privzetaMejaZaAvtorizacijo, na.rm=TRUE) 
 		
 	}
+	legenda = c("datum", "meja", "mean(realnaPopulacija)", "sd(realnaPopulacija", "length(novaPopulacija)", "skewness(realnaPopulacija)", "namig")
+	write(legenda, file = paste("legenda",outputName,sep=""), ncolumns = length(legenda), append = FALSE, sep = ", ")
 	a <- mean(realnaPopulacija, na.rm=TRUE)
 	print(sprintf("Povprecje Pred %.4f", povZp))
 	print(sprintf("povprecje po %.4f", a))
@@ -163,7 +165,7 @@ if (length(args) == 16){
 	simulator
 	print(length(args))
 }else {
-	print "Usage: datumOd datumDo datumOd2 datumDo2 privzetaMejaZaAvtorizacijo dPovprecje dSD dAvtorizacije indeksRasti stNakljucnihPopulacij malaMeja dMalaMeja delezRealnih pathToData dataFileName outputName"
+	print ("Usage: datumOd datumDo datumOd2 datumDo2 privzetaMejaZaAvtorizacijo dPovprecje dSD dAvtorizacije indeksRasti stNakljucnihPopulacij malaMeja dMalaMeja delezRealnih pathToData dataFileName outputName")
 }
 
 
