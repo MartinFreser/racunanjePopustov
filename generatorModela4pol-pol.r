@@ -1,5 +1,4 @@
-setwd("C:\\Users\\DraganaBozovic\\Desktop\\ZavMbNovo") # Nastavite si delovno okolje, torej pot do mape, v kateri delate
-zp<-read.csv("LTV avtomatizacija avtorizacij - podatki v2.csv", sep=";")
+
 #print(head(zp))
 library(stats)
 library(base)
@@ -40,7 +39,7 @@ namigZaAvtorizanta <- function(novaPopulacija, realnaPopulacija, zaOdstranit, si
 
 
 generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaAvtorizacijo, dPovprecje, dSD, 
-				dAvtorizacije = 0, indeksRasti = 1,stNakljucnihPopulacij = 1,malaMeja = 0.25, dMalaMeja=0, delezRealnih=0.0, mesto = NULL){
+				dAvtorizacije = 0, indeksRasti = 1,stNakljucnihPopulacij = 1,malaMeja = 0.25, dMalaMeja=0, delezRealnih=0.0, outputName="output.txt", mesto = NULL){
 	#Model se nauči na podatkih datumOd do datumDo, kjer izračuna povprečje in standardni odklon. datum2Od in datum2Do določata, kdaj bomo simulirali podatke
 	# dPovprecje .... za koliko procentov zelimo spremeniti povprečje (če ga hočemo zmanjšati, mora biti negativno)
 	# dSD ... analogno kot dPovprečje, le da gre za standardni odklon
@@ -112,8 +111,10 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 		namig = median (namigArray, na.rm = TRUE)
 		realnaPopulacija <- c(realnaPopulacija, novaPopulacija[novaPopulacija<=malaMeja],novaPopulacija[malaMeja< novaPopulacija && novaPopulacija < meja]+dMalaMeja, novaPopulacija[novaPopulacija>meja] + dAvtorizacije)
 		#realnaPopulacija <- c(realnaPopulacija, novaPopulacija)
-		x <- c(meja, mean(realnaPopulacija, na.rm=TRUE), sd(realnaPopulacija, na.rm=TRUE), length(novaPopulacija), skewness(realnaPopulacija, na.rm=TRUE), namig)
-		write(x, file = "output1.txt", ncolumns = 6, append = TRUE, sep = ";")		
+		x <- c(dt, meja, mean(realnaPopulacija, na.rm=TRUE), sd(realnaPopulacija, na.rm=TRUE), length(novaPopulacija), skewness(realnaPopulacija, na.rm=TRUE), namig)
+		if(dt==datumOd2){ zdruzi = FALSE} #da povozimo star file.
+		else {zdruzi = TRUE}
+		write(x, file = outputName, ncolumns = length(x), append = zdruzi, sep = ";")		
 		print(sprintf("nova meja je %.4f, povprecje do tega trenutka je %.4f, standardni odklon: %.4f, stNovihPopustov: %d, skewness = %.4f, namig = %.4f", meja, 
 				mean(realnaPopulacija, na.rm=TRUE), sd(realnaPopulacija, na.rm=TRUE), length(novaPopulacija), skewness(realnaPopulacija, na.rm=TRUE), namig))
 		#print(x)
@@ -138,8 +139,34 @@ generirajModel <- function(datumOd, datumDo, datumOd2, datumDo2, privzetaMejaZaA
 				"staroRazmerje" = stAvtorizacijPrivzeto/ length(realnaPopulacija));
 	rezultati
 }
-		
+
 #Simulacija zmanjsanje povprecja in standardnega odklona
 #sink("output.txt", append=TRUE, split=FALSE)
-simulator <- generirajModel("20140101","20140131","20140101","20140228", 0.37, -0.00, -0.02, -0.05,malaMeja=0.25,dMalaMeja=-0.01, delezRealnih = 0.5, stNakljucnihPopulacij = 10, indeksRasti = 103.2)
-simulator
+args <- commandArgs(trailingOnly = TRUE)
+
+#setwd("C:\\Users\\DraganaBozovic\\Desktop\\ZavMbNovo") # Nastavite si delovno okolje, torej pot do mape, v kateri delate
+
+
+if (length(args) == 16){
+	
+	setwd(args[14])
+	zp<-read.csv(args[15], sep=";")
+	simulator <- generirajModel(args[1],args[2],args[3],args[4], as.numeric(args[5]), as.numeric(args[6]), 
+									as.numeric(args[7]), as.numeric(args[8]),malaMeja= as.numeric(args[9]),dMalaMeja= as.numeric(args[10]), 
+									delezRealnih = as.numeric(args[11]), stNakljucnihPopulacij = as.numeric(args[12]), 
+									indeksRasti = as.numeric(args[13]), outputName=args[16])
+	simulator
+}else if (FALSE){ # ce je treba kaj testirati, ta blok se ne rabi več izvajati...
+	setwd("D:\\Martin delo\\zavPolice\\intervali zaupanja")
+	zp<-read.csv("LTV avtomatizacija avtorizacij - podatki v2.csv", sep=";")
+	simulator <- generirajModel("20140101","20140131","20140101","20140228", 0.37, -0.00, -0.02, -0.05,malaMeja=0.25,dMalaMeja=-0.01, delezRealnih = 0.5, stNakljucnihPopulacij = 10, indeksRasti = 103.2)
+	simulator
+	print(length(args))
+}else {
+	print "Usage: datumOd datumDo datumOd2 datumDo2 privzetaMejaZaAvtorizacijo dPovprecje dSD dAvtorizacije indeksRasti stNakljucnihPopulacij malaMeja dMalaMeja delezRealnih pathToData dataFileName outputName"
+}
+
+
+
+#Rscript generatorModela4pol-pol.r 20140101 20140131 20140101 20140228 0.37 -0.00 -0.02 -0.05 0.25 -0.01 0.5 10 103.2 "D:\\Martin delo\\zavPolice\\intervali zaupanja" "LTV avtomatizacija avtorizacij - podatki v2.csv" "output2.txt"
+#Rscript generatorModela4pol-pol.r datumOd datumDo datumOd2 datumDo2 privzetaMejaZaAvtorizacijo dPovprecje dSD dAvtorizacije indeksRasti stNakljucnihPopulacij malaMeja dMalaMeja delezRealnih pathToData dataFileName outputName 
